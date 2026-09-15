@@ -23,80 +23,48 @@ create table if not exists public.messages (
   created_at timestamptz not null default now()
 );
 
-create index if not exists messages_channel_created_idx
-  on public.messages(channel_id, created_at);
+create index if not exists messages_channel_created_idx on public.messages(channel_id, created_at);
 
 alter table public.profiles enable row level security;
 alter table public.channels enable row level security;
 alter table public.messages enable row level security;
 
 drop policy if exists "profiles readable by authenticated users" on public.profiles;
-create policy "profiles readable by authenticated users"
-  on public.profiles for select to authenticated using (true);
-
+create policy "profiles readable by authenticated users" on public.profiles for select to authenticated using (true);
 drop policy if exists "users can create their own profile" on public.profiles;
-create policy "users can create their own profile"
-  on public.profiles for insert to authenticated
-  with check ((select auth.uid()) = id);
-
+create policy "users can create their own profile" on public.profiles for insert to authenticated with check ((select auth.uid()) = id);
 drop policy if exists "users can update their own profile" on public.profiles;
-create policy "users can update their own profile"
-  on public.profiles for update to authenticated
-  using ((select auth.uid()) = id)
-  with check ((select auth.uid()) = id);
+create policy "users can update their own profile" on public.profiles for update to authenticated using ((select auth.uid()) = id) with check ((select auth.uid()) = id);
 
 drop policy if exists "channels readable by authenticated users" on public.channels;
-create policy "channels readable by authenticated users"
-  on public.channels for select to authenticated using (true);
+create policy "channels readable by authenticated users" on public.channels for select to authenticated using (true);
+drop policy if exists "authenticated users can create channels" on public.channels;
+create policy "authenticated users can create channels" on public.channels for insert to authenticated with check (char_length(trim(name)) between 1 and 30);
 
 drop policy if exists "authenticated users can read messages" on public.messages;
-create policy "authenticated users can read messages"
-  on public.messages for select to authenticated using (true);
-
+create policy "authenticated users can read messages" on public.messages for select to authenticated using (true);
 drop policy if exists "authenticated users can send messages" on public.messages;
-create policy "authenticated users can send messages"
-  on public.messages for insert to authenticated
-  with check ((select auth.uid()) = user_id);
+create policy "authenticated users can send messages" on public.messages for insert to authenticated with check ((select auth.uid()) = user_id);
 
-insert into public.channels (name)
-values ('general'), ('showcase'), ('builds'), ('random')
-on conflict (name) do nothing;
+insert into public.channels (name) values ('general'), ('showcase'), ('builds'), ('random') on conflict (name) do nothing;
 
 create or replace function public.handle_new_user()
-returns trigger
-language plpgsql
-security invoker
-as $$
-declare
-  requested_username text;
-  fallback_username text;
+returns trigger language plpgsql security invoker as $$
+declare requested_username text; fallback_username text;
 begin
   requested_username := nullif(trim(new.raw_user_meta_data ->> 'username'), '');
   fallback_username := 'user_' || left(replace(new.id::text, '-', ''), 10);
-
-  insert into public.profiles (id, username)
-  values (new.id, coalesce(requested_username, fallback_username))
-  on conflict (id) do nothing;
-
+  insert into public.profiles (id, username) values (new.id, coalesce(requested_username, fallback_username)) on conflict (id) do nothing;
   return new;
 end;
 $$;
 
 drop trigger if exists on_auth_user_created on auth.users;
-create trigger on_auth_user_created
-after insert on auth.users
-for each row execute function public.handle_new_user();
+create trigger on_auth_user_created after insert on auth.users for each row execute function public.handle_new_user();
 
--- Enable Postgres Changes for live chat updates, without failing when already enabled.
 do $$
 begin
-  if not exists (
-    select 1
-    from pg_publication_tables
-    where pubname = 'supabase_realtime'
-      and schemaname = 'public'
-      and tablename = 'messages'
-  ) then
+  if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'messages') then
     execute 'alter publication supabase_realtime add table public.messages';
   end if;
 end $$;
