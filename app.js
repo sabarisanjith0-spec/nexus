@@ -52,6 +52,7 @@ function setAuthMode(mode) {
 function renderMessage(message) {
   const article = document.createElement('article');
   article.className = 'message';
+  article.dataset.messageId = message.id;
   const username = message.profiles?.username || 'User';
   const initial = username.slice(0, 1).toUpperCase();
   const time = new Date(message.created_at).toLocaleString([], { hour: '2-digit', minute: '2-digit' });
@@ -115,6 +116,21 @@ async function loadChannels() {
   });
 }
 
+async function loadMembers() {
+  const { data, error } = await supabase.from('profiles').select('id,username').order('username').limit(50);
+  if (error) throw error;
+  $('#membersList').innerHTML = '';
+  (data || []).forEach((profile) => {
+    const row = document.createElement('div');
+    row.className = 'member';
+    row.innerHTML = `<div class="avatar av-cyan">${escapeHtml(profile.username.slice(0,1).toUpperCase())}<span></span></div><div><strong>${escapeHtml(profile.username)}</strong><small>NEXUS member</small></div><span class="online"></span>`;
+    $('#membersList').appendChild(row);
+  });
+  $('#memberCount').textContent = `${data?.length || 0} members`;
+  $('#memberStat').textContent = String(data?.length || 0);
+  $('#onlineStat').textContent = String(data?.length || 0);
+}
+
 async function loadMessages() {
   const channelId = channelMap.get(currentChannel);
   if (!channelId) { renderEmpty(); return; }
@@ -140,8 +156,7 @@ function subscribeRealtime() {
       const channelId = channelMap.get(currentChannel);
       if (row.channel_id !== channelId || document.querySelector(`[data-message-id="${row.id}"]`)) return;
       const { data } = await supabase.from('profiles').select('username').eq('id', row.user_id).maybeSingle();
-      const article = renderMessage({ ...row, profiles: data });
-      article.dataset.messageId = row.id;
+      renderMessage({ ...row, profiles: data });
       $('#feed').scrollTo({ top: $('#feed').scrollHeight, behavior: 'smooth' });
     })
     .subscribe((status) => {
@@ -185,9 +200,9 @@ async function boot() {
     if (!session) {
       setStatus('Sign in required');
       showAuth(true);
-      return;
+    } else {
+      await afterAuth();
     }
-    await afterAuth();
   } catch (error) {
     setStatus('Backend error');
     toast(error.message);
@@ -209,11 +224,11 @@ async function afterAuth() {
   const username = session.user.user_metadata?.username;
   await ensureProfile(session.user, username);
   await loadChannels();
+  await loadMembers();
   await loadMessages();
   subscribeRealtime();
   $('#messageInput').disabled = false;
   setStatus('Live sync', true);
-  $('#authNote').textContent = '';
 }
 
 $('#authForm').addEventListener('submit', async (event) => {
@@ -229,8 +244,8 @@ $('#authForm').addEventListener('submit', async (event) => {
       const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { username } } });
       if (error) throw error;
       if (!data.session) {
-        $('#authNote').textContent = 'Check your email to confirm your account, then sign in.';
         setAuthMode('signin');
+        $('#authNote').textContent = 'Check your email to confirm your account, then sign in.';
       } else {
         $('#authNote').textContent = 'Account created. Opening NEXUS…';
       }
@@ -249,7 +264,6 @@ $('#authSwitch').addEventListener('click', () => setAuthMode(authMode === 'signu
 $('#signOutBtn').addEventListener('click', async () => { if (supabase) await supabase.auth.signOut(); });
 $('#themeBtn').addEventListener('click', () => { document.body.classList.toggle('warm'); toast(document.body.classList.contains('warm') ? 'Cyan signal enabled' : 'Violet signal enabled'); });
 $$('.server').forEach((btn) => btn.addEventListener('click', () => { $$('.server').forEach((x) => x.classList.remove('active')); btn.classList.add('active'); toast(`${btn.dataset.server} network selected`); }));
-$('.voice-call button')?.addEventListener('click', (btn) => { btn.textContent = 'Joined'; btn.disabled = true; });
 
 $('#messageForm').addEventListener('submit', async (event) => {
   event.preventDefault();
