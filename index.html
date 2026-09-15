@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="NEXUS — a next-generation real-time community communication OS." />
   <meta name="theme-color" content="#080a12" />
+  <link rel="manifest" href="manifest.webmanifest" />
   <title>NEXUS — Community OS</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -26,80 +27,33 @@
       <button class="rail-action" id="commandBtn" title="Command palette">⌘</button>
       <button class="rail-action" id="userSettingsBtn" title="Settings">⚙</button>
     </aside>
-
     <aside class="sidebar">
       <header class="workspace-head"><div><div class="eyebrow">COMMUNITY OS / v2</div><h1>NEXUS</h1></div><button class="icon-btn" id="workspaceMenu" title="Workspace menu">⌄</button></header>
       <div class="workspace-status"><span class="status-dot"></span><span id="connectionStatus">Connecting…</span><span class="pulse">●</span></div>
       <div class="quick-actions"><button id="newMessageBtn">＋ New</button><button id="inboxBtn">Inbox <b id="inboxBadge">3</b></button></div>
       <nav class="nav-groups">
-        <div class="nav-group">
-          <div class="group-title">DISCOVERY</div>
-          <button class="nav-item active" data-view="home"><span>⌂</span> Home</button>
-          <button class="nav-item" data-view="explore"><span>◈</span> Explore</button>
-          <button class="nav-item" data-view="mentions"><span>@</span> Mentions <b id="mentionBadge">2</b></button>
-          <button class="nav-item" data-view="saved"><span>◇</span> Saved</button>
-        </div>
-        <div class="nav-group">
-          <div class="group-title">CHANNELS <button class="mini-add" id="addChannel">+</button></div>
-          <div id="channelList"></div>
-        </div>
-        <div class="nav-group">
-          <div class="group-title">DIRECT</div>
-          <button class="dm-item" data-dm="Atlas"><span class="avatar mini av-purple">A<span></span></span><span>Atlas</span><i>2</i></button>
-          <button class="dm-item" data-dm="Riya"><span class="avatar mini av-cyan">R<span></span></span><span>Riya</span><i></i></button>
-        </div>
-        <div class="nav-group voice-group">
-          <div class="group-title">VOICE</div>
-          <button class="voice-channel" data-voice="Lounge"><span>◌</span> Lounge <i>4</i></button>
-          <button class="voice-channel" data-voice="Focus Room"><span>◌</span> Focus Room <i>2</i></button>
-        </div>
+        <div class="nav-group"><div class="group-title">DISCOVERY</div><button class="nav-item active" data-view="home"><span>⌂</span> Home</button><button class="nav-item" data-view="explore"><span>◈</span> Explore</button><button class="nav-item" data-view="mentions"><span>@</span> Mentions <b id="mentionBadge">2</b></button><button class="nav-item" data-view="saved"><span>◇</span> Saved</button></div>
+        <div class="nav-group"><div class="group-title">CHANNELS <button class="mini-add" id="addChannel">+</button></div><div id="channelList"></div></div>
+        <div class="nav-group"><div class="group-title">DIRECT</div><button class="dm-item" data-dm="Atlas"><span class="avatar mini av-purple">A<span></span></span><span>Atlas</span><i>2</i></button><button class="dm-item" data-dm="Riya"><span class="avatar mini av-cyan">R<span></span></span><span>Riya</span><i></i></button></div>
+        <div class="nav-group voice-group"><div class="group-title">VOICE</div><button class="voice-channel" data-voice="Lounge"><span>◌</span> Lounge <i>4</i></button><button class="voice-channel" data-voice="Focus Room"><span>◌</span> Focus Room <i>2</i></button></div>
       </nav>
-      <footer class="user-card">
-        <div class="avatar user-avatar">S<span></span></div>
-        <div class="user-copy"><strong id="currentUsername">Operator</strong><small id="currentEmail">@sanjith</small></div>
-        <button class="icon-btn" id="signOutBtn" title="Sign out">↪</button><button class="icon-btn" id="accountBtn" title="Account">⚙</button>
-      </footer>
+      <footer class="user-card"><div class="avatar user-avatar">S<span></span></div><div class="user-copy"><strong id="currentUsername">Operator</strong><small id="currentEmail">@sanjith</small></div><button class="icon-btn" id="signOutBtn" title="Sign out">↪</button><button class="icon-btn" id="accountBtn" title="Account">⚙</button></footer>
     </aside>
-
     <main class="main-panel">
-      <header class="topbar">
-        <div class="channel-heading"><span class="hash" id="contextIcon">#</span><div><strong id="channelTitle">general</strong><small id="channelSubtitle">The main transmission channel</small></div></div>
-        <div class="top-actions">
-          <button class="icon-btn" id="pinBtn" title="Pinned messages">⌖</button>
-          <button class="icon-btn" id="membersBtn" title="Members">◎</button>
-          <label class="search"><span>⌕</span><input id="searchInput" placeholder="Search NEXUS" /><kbd>Ctrl K</kbd></label>
-          <button class="icon-btn" id="topInboxBtn" title="Inbox">▣</button>
-        </div>
-      </header>
-
-      <section class="hero-card" id="heroCard">
-        <div class="hero-copy"><div class="hero-tag">NEXUS / LIVE NETWORK</div><h2>Build. Share. <span>Connect.</span></h2><p>A high-signal workspace for communities that want chat, collaboration, discovery and momentum in one place.</p><div class="hero-stats"><span><b id="memberStat">—</b> members</span><span><b id="onlineStat">—</b> visible</span><span><b>LIVE</b> sync</span></div><div class="hero-actions"><button class="primary" id="heroStartBtn">Start a conversation</button><button class="ghost" id="heroExploreBtn">Explore channels</button></div></div>
-        <div class="orb"><div class="orb-core"></div><div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div><div class="orbit-dot d1"></div><div class="orbit-dot d2"></div></div>
-      </section>
-
+      <header class="topbar"><div class="channel-heading"><span class="hash" id="contextIcon">#</span><div><strong id="channelTitle">general</strong><small id="channelSubtitle">The main transmission channel</small></div></div><div class="top-actions"><button class="icon-btn" id="pinBtn" title="Pinned messages">⌖</button><button class="icon-btn" id="membersBtn" title="Members">◎</button><label class="search"><span>⌕</span><input id="searchInput" placeholder="Search NEXUS" /><kbd>Ctrl K</kbd></label><button class="icon-btn" id="topInboxBtn" title="Inbox">▣</button></div></header>
+      <section class="hero-card" id="heroCard"><div class="hero-copy"><div class="hero-tag">NEXUS / LIVE NETWORK</div><h2>Build. Share. <span>Connect.</span></h2><p>A high-signal workspace for communities that want chat, collaboration, discovery and momentum in one place.</p><div class="hero-stats"><span><b id="memberStat">—</b> members</span><span><b id="onlineStat">—</b> visible</span><span><b>LIVE</b> sync</span></div><div class="hero-actions"><button class="primary" id="heroStartBtn">Start a conversation</button><button class="ghost" id="heroExploreBtn">Explore channels</button></div></div><div class="orb"><div class="orb-core"></div><div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div><div class="orbit-dot d1"></div><div class="orbit-dot d2"></div></div></section>
       <div class="toolbar-row"><div class="live-chip"><span></span> Live activity</div><button class="filter-btn" id="filterBtn">Latest ▾</button><button class="filter-btn" id="compactBtn">Compact</button></div>
-      <section class="feed" id="feed"></section>
-      <div class="jump-new" id="jumpNew">↓ New messages</div>
-
+      <section class="feed" id="feed"></section><div class="jump-new" id="jumpNew">↓ New messages</div>
       <footer class="composer-wrap"><div class="typing" id="typing"></div><form class="composer" id="messageForm"><button type="button" class="attach" id="attachBtn">＋</button><input id="messageInput" autocomplete="off" placeholder="Message #general" disabled /><div class="compose-actions"><button type="button" id="emojiBtn">☺</button><button type="button" id="gifBtn">GIF</button><button type="button" id="formatBtn">⌁</button><button type="submit" class="send">➤</button></div></form><div class="composer-hint"><span>Enter to send</span><span>Shift + Enter for a new line</span></div></footer>
     </main>
-
-    <aside class="members-panel">
-      <div class="members-head"><div><span class="eyebrow">NEXUS / PRESENCE</span><h3>People</h3></div><span class="count" id="memberCount">—</span></div>
-      <div class="presence-card"><div class="presence-ring"><span></span></div><div><strong id="presenceTitle">You are connected</strong><small id="presenceSubtitle">Live workspace presence</small></div></div>
-      <div class="member-section"><div class="member-title">CONNECTED USERS</div><div id="membersList"></div></div>
-      <div class="member-section suggestions"><div class="member-title">NEXUS SIGNAL</div><div class="signal-card"><strong>Keep the momentum.</strong><p>Share a build, ask a question, or start a focused conversation.</p><button id="signalBtn">Open discovery →</button></div></div>
-    </aside>
+    <aside class="members-panel"><div class="members-head"><div><span class="eyebrow">NEXUS / PRESENCE</span><h3>People</h3></div><span class="count" id="memberCount">—</span></div><div class="presence-card"><div class="presence-ring"><span></span></div><div><strong id="presenceTitle">You are connected</strong><small id="presenceSubtitle">Live workspace presence</small></div></div><div class="member-section"><div class="member-title">CONNECTED USERS</div><div id="membersList"></div></div><div class="member-section suggestions"><div class="member-title">NEXUS SIGNAL</div><div class="signal-card"><strong>Keep the momentum.</strong><p>Share a build, ask a question, or start a focused conversation.</p><button id="signalBtn">Open discovery →</button></div></div></aside>
   </div>
-
-  <div class="auth-overlay" id="authOverlay" hidden>
-    <div class="auth-card"><button class="modal-close" id="closeAuth">×</button><div class="hero-tag">NEXUS / IDENTITY</div><h2 id="authTitle">Join NEXUS</h2><p id="authSubtitle">Create an account to enter the live group chat.</p><form id="authForm"><label class="auth-field" id="usernameField"><span>Username</span><input id="authUsername" minlength="2" maxlength="24" autocomplete="username" /></label><label class="auth-field"><span>Email</span><input id="authEmail" type="email" required autocomplete="email" /></label><label class="auth-field"><span>Password</span><input id="authPassword" type="password" minlength="6" required autocomplete="current-password" /></label><button class="auth-submit" type="submit" id="authSubmit">Create account</button></form><button class="auth-switch" id="authSwitch" type="button">Already have an account? Sign in</button><div class="auth-note" id="authNote"></div></div>
-  </div>
-
+  <div class="auth-overlay" id="authOverlay" hidden><div class="auth-card"><button class="modal-close" id="closeAuth">×</button><div class="hero-tag">NEXUS / IDENTITY</div><h2 id="authTitle">Join NEXUS</h2><p id="authSubtitle">Create an account to enter the live group chat.</p><form id="authForm"><label class="auth-field" id="usernameField"><span>Username</span><input id="authUsername" minlength="2" maxlength="24" autocomplete="username" /></label><label class="auth-field"><span>Email</span><input id="authEmail" type="email" required autocomplete="email" /></label><label class="auth-field"><span>Password</span><input id="authPassword" type="password" minlength="6" required autocomplete="current-password" /></label><button class="auth-submit" type="submit" id="authSubmit">Create account</button></form><button class="auth-switch" id="authSwitch" type="button">Already have an account? Sign in</button><div class="auth-note" id="authNote"></div></div></div>
   <div class="command-overlay" id="commandOverlay" hidden><div class="command-card"><div class="command-head"><span>⌘</span><input id="commandInput" placeholder="Search commands, channels, people…" /></div><div class="command-results" id="commandResults"></div><div class="command-foot"><span>↑↓ navigate</span><span>Enter open</span><span>Esc close</span></div></div></div>
   <div class="drawer-overlay" id="drawerOverlay" hidden><aside class="drawer" id="drawer"></aside></div>
   <div class="toast" id="toast"></div>
   <script src="supabase-config.js"></script>
   <script type="module" src="app.js"></script>
+  <script type="module" src="enhancements.js"></script>
 </body>
 </html>
