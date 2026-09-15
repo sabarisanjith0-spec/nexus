@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="NEXUS — a futuristic community communication interface." />
+  <meta name="description" content="NEXUS — a real-time community communication interface." />
   <title>NEXUS — Community OS</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -27,7 +27,7 @@
 
     <aside class="sidebar">
       <header class="workspace-head"><div><div class="eyebrow">COMMUNITY OS</div><h1>NEXUS</h1></div><button class="icon-btn" title="Workspace menu">⌄</button></header>
-      <div class="workspace-status"><span class="status-dot"></span><span>Everything synced</span><span class="pulse">●</span></div>
+      <div class="workspace-status"><span class="status-dot"></span><span id="connectionStatus">Connecting…</span><span class="pulse">●</span></div>
       <nav class="nav-groups">
         <div class="nav-group">
           <div class="group-title">DISCOVERY</div>
@@ -37,10 +37,12 @@
         </div>
         <div class="nav-group">
           <div class="group-title">CHANNELS <button class="mini-add" id="addChannel">+</button></div>
-          <button class="channel active" data-channel="general"><span>#</span> general</button>
-          <button class="channel" data-channel="showcase"><span>#</span> showcase</button>
-          <button class="channel" data-channel="builds"><span>#</span> builds</button>
-          <button class="channel" data-channel="random"><span>#</span> random</button>
+          <div id="channelList">
+            <button class="channel active" data-channel="general"><span>#</span> general</button>
+            <button class="channel" data-channel="showcase"><span>#</span> showcase</button>
+            <button class="channel" data-channel="builds"><span>#</span> builds</button>
+            <button class="channel" data-channel="random"><span>#</span> random</button>
+          </div>
         </div>
         <div class="nav-group voice-group">
           <div class="group-title">VOICE</div>
@@ -50,8 +52,8 @@
       </nav>
       <footer class="user-card">
         <div class="avatar user-avatar">S<span></span></div>
-        <div class="user-copy"><strong>Operator</strong><small>@sanjith</small></div>
-        <button class="icon-btn" title="Mute">♩</button><button class="icon-btn" title="Settings">⚙</button>
+        <div class="user-copy"><strong id="currentUsername">Operator</strong><small id="currentEmail">@sanjith</small></div>
+        <button class="icon-btn" id="signOutBtn" title="Sign out">↪</button><button class="icon-btn" id="userSettingsBtn" title="Account">⚙</button>
       </footer>
     </aside>
 
@@ -67,27 +69,39 @@
       </header>
 
       <section class="hero-card">
-        <div class="hero-copy"><div class="hero-tag">NEXUS / LIVE NETWORK</div><h2>Build. Share. <span>Connect.</span></h2><p>A next-generation community layer for people who create, learn and ship together.</p><div class="hero-stats"><span><b>12.8K</b> members</span><span><b>1,240</b> online</span><span><b>98%</b> signal</span></div></div>
+        <div class="hero-copy"><div class="hero-tag">NEXUS / LIVE NETWORK</div><h2>Build. Share. <span>Connect.</span></h2><p>Now with real accounts, persistent messages and live cross-browser chat.</p><div class="hero-stats"><span><b id="memberStat">—</b> members</span><span><b id="onlineStat">—</b> online</span><span><b>LIVE</b> signal</span></div></div>
         <div class="orb"><div class="orb-core"></div><div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div></div>
       </section>
 
-      <section class="feed" id="feed">
-        <article class="message pinned"><div class="pin-label">⌖ PINNED TRANSMISSION</div><div class="message-row"><div class="avatar av-purple">A<span></span></div><div class="message-body"><div class="meta"><strong>Atlas</strong><span class="role">NEXUS CORE</span><time>Today at 20:41</time></div><p>Welcome to <b>NEXUS</b>. This space is built for ideas that deserve to become real things. Drop a build, start a thread, or just say hello.</p><div class="reaction-row"><button>⚡ 42</button><button>🚀 18</button><button>✨ 31</button><button class="add-reaction">+</button></div></div></div></article>
-        <article class="message"><div class="message-row"><div class="avatar av-cyan">R<span></span></div><div class="message-body"><div class="meta"><strong>Riya</strong><span>Today at 20:44</span></div><p>Just finished the first version of my rover dashboard. The new activity panel is ridiculously smooth 😭</p><div class="attachment"><div class="attachment-preview"><span>LIVE BUILD</span><b>ROVER // v0.8</b><small>telemetry · mapping · mission control</small></div><div class="attachment-info"><strong>rover-dashboard.fig</strong><small>2.4 MB · uploaded just now</small></div></div><div class="reaction-row"><button>🔥 16</button><button>🤖 9</button><button class="add-reaction">+</button></div></div></div></article>
-        <article class="message"><div class="message-row"><div class="avatar av-orange">K<span></span></div><div class="message-body"><div class="meta"><strong>Kael</strong><span class="role mod">MOD</span><time>Today at 20:46</time></div><p>Tonight’s challenge: ship one tiny thing that makes tomorrow easier. Doesn’t need to be perfect. Just needs to exist.</p><div class="quote">“Momentum is a feature.”</div><div class="reaction-row"><button>💡 27</button><button>❤️ 12</button><button class="add-reaction">+</button></div></div></div></article>
-        <article class="message"><div class="message-row"><div class="avatar av-green">M<span></span></div><div class="message-body"><div class="meta"><strong>Mei</strong><span>Today at 20:49</span></div><p>Who’s joining the Focus Room? I’m doing a 45-minute build sprint.</p><div class="voice-call"><span class="sound-bars"><i></i><i></i><i></i><i></i></span><div><strong>Focus Room</strong><small>2 people connected</small></div><button>Join</button></div></div></div></article>
-      </section>
+      <section class="feed" id="feed"></section>
 
-      <footer class="composer-wrap"><div class="typing" id="typing"></div><form class="composer" id="messageForm"><button type="button" class="attach">＋</button><input id="messageInput" autocomplete="off" placeholder="Message #general" /><div class="compose-actions"><button type="button">☺</button><button type="button">GIF</button><button type="button">⌁</button><button type="submit" class="send">➤</button></div></form></footer>
+      <footer class="composer-wrap"><div class="typing" id="typing"></div><form class="composer" id="messageForm"><button type="button" class="attach">＋</button><input id="messageInput" autocomplete="off" placeholder="Message #general" disabled /><div class="compose-actions"><button type="button">☺</button><button type="button">GIF</button><button type="button">⌁</button><button type="submit" class="send">➤</button></div></form></footer>
     </main>
 
     <aside class="members-panel">
-      <div class="members-head"><div><span class="eyebrow">NEXUS</span><h3>Members</h3></div><span class="count">1,240 online</span></div>
-      <div class="member-section"><div class="member-title">CORE TEAM — 3</div><div class="member"><div class="avatar av-purple">A<span></span></div><div><strong>Atlas</strong><small>Core / Systems</small></div><span class="online"></span></div><div class="member"><div class="avatar av-cyan">R<span></span></div><div><strong>Riya</strong><small>Builder</small></div><span class="online"></span></div><div class="member"><div class="avatar av-orange">K<span></span></div><div><strong>Kael</strong><small>Moderator</small></div><span class="online"></span></div></div>
-      <div class="member-section"><div class="member-title">ONLINE — 5</div><div class="member"><div class="avatar av-green">M<span></span></div><div><strong>Mei</strong><small>Deep work mode</small></div><span class="online"></span></div><div class="member"><div class="avatar av-pink">J<span></span></div><div><strong>Juno</strong><small>Designing</small></div><span class="online"></span></div><div class="member"><div class="avatar av-blue">V<span></span></div><div><strong>Vik</strong><small>Learning</small></div><span class="online"></span></div><div class="member"><div class="avatar av-yellow">N<span></span></div><div><strong>Nora</strong><small>Exploring</small></div><span class="online"></span></div><div class="member"><div class="avatar av-red">Z<span></span></div><div><strong>Zed</strong><small>Shipping</small></div><span class="online"></span></div></div>
+      <div class="members-head"><div><span class="eyebrow">NEXUS</span><h3>Members</h3></div><span class="count" id="memberCount">— online</span></div>
+      <div class="member-section"><div class="member-title">CONNECTED USERS</div><div id="membersList"></div></div>
     </aside>
   </div>
+
+  <div class="auth-overlay" id="authOverlay" hidden>
+    <div class="auth-card">
+      <div class="hero-tag">NEXUS / IDENTITY</div>
+      <h2 id="authTitle">Join NEXUS</h2>
+      <p id="authSubtitle">Create an account to enter the live group chat.</p>
+      <form id="authForm">
+        <label class="auth-field" id="usernameField"><span>Username</span><input id="authUsername" minlength="2" maxlength="24" autocomplete="username" /></label>
+        <label class="auth-field"><span>Email</span><input id="authEmail" type="email" required autocomplete="email" /></label>
+        <label class="auth-field"><span>Password</span><input id="authPassword" type="password" minlength="6" required autocomplete="current-password" /></label>
+        <button class="auth-submit" type="submit" id="authSubmit">Create account</button>
+      </form>
+      <button class="auth-switch" id="authSwitch" type="button">Already have an account? Sign in</button>
+      <div class="auth-note" id="authNote"></div>
+    </div>
+  </div>
+
   <div class="toast" id="toast"></div>
-  <script src="app.js"></script>
+  <script src="supabase-config.js"></script>
+  <script type="module" src="app.js"></script>
 </body>
 </html>
