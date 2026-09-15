@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="NEXUS — a futuristic community communication interface." />
+  <title>NEXUS — Community OS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="ambient ambient-a"></div><div class="ambient ambient-b"></div>
+  <div class="app-shell">
+    <aside class="rail">
+      <button class="brand active" aria-label="NEXUS home"><span>N</span></button>
+      <div class="rail-sep"></div>
+      <button class="server active" data-server="NEXUS" title="NEXUS"><span>NX</span></button>
+      <button class="server" data-server="LAB" title="Creator Lab"><span>CL</span></button>
+      <button class="server" data-server="DEV" title="Dev Station"><span>DS</span></button>
+      <button class="add-server" title="Add community">+</button>
+      <div class="rail-spacer"></div>
+      <button class="rail-action" id="themeBtn" title="Toggle glow theme">◐</button>
+      <button class="rail-action" title="Settings">⚙</button>
+    </aside>
+
+    <aside class="sidebar">
+      <header class="workspace-head"><div><div class="eyebrow">COMMUNITY OS</div><h1>NEXUS</h1></div><button class="icon-btn" title="Workspace menu">⌄</button></header>
+      <div class="workspace-status"><span class="status-dot"></span><span>Everything synced</span><span class="pulse">●</span></div>
+      <nav class="nav-groups">
+        <div class="nav-group">
+          <div class="group-title">DISCOVERY</div>
+          <button class="nav-item active"><span>⌂</span> Home</button>
+          <button class="nav-item"><span>◈</span> Explore</button>
+          <button class="nav-item"><span>◉</span> Notifications <b>3</b></button>
+        </div>
+        <div class="nav-group">
+          <div class="group-title">CHANNELS <button class="mini-add" id="addChannel">+</button></div>
+          <button class="channel active" data-channel="general"><span>#</span> general</button>
+          <button class="channel" data-channel="showcase"><span>#</span> showcase</button>
+          <button class="channel" data-channel="builds"><span>#</span> builds</button>
+          <button class="channel" data-channel="random"><span>#</span> random</button>
+        </div>
+        <div class="nav-group voice-group">
+          <div class="group-title">VOICE</div>
+          <button class="voice-channel"><span>◌</span> Lounge <i>4</i></button>
+          <button class="voice-channel"><span>◌</span> Focus Room <i>2</i></button>
+        </div>
+      </nav>
+      <footer class="user-card">
+        <div class="avatar user-avatar">S<span></span></div>
+        <div class="user-copy"><strong>Operator</strong><small>@sanjith</small></div>
+        <button class="icon-btn" title="Mute">♩</button><button class="icon-btn" title="Settings">⚙</button>
+      </footer>
+    </aside>
+
+    <main class="main-panel">
+      <header class="topbar">
+        <div class="channel-heading"><span class="hash">#</span><div><strong id="channelTitle">general</strong><small id="channelSubtitle">The main transmission channel</small></div></div>
+        <div class="top-actions">
+          <button class="icon-btn" title="Pinned">⌖</button>
+          <button class="icon-btn" title="Members">◎</button>
+          <label class="search"><span>⌕</span><input id="searchInput" placeholder="Search NEXUS" /><kbd>Ctrl K</kbd></label>
+          <button class="icon-btn" title="Inbox">▣</button>
+        </div>
+      </header>
+
+      <section class="hero-card">
+        <div class="hero-copy"><div class="hero-tag">NEXUS / LIVE NETWORK</div><h2>Build. Share. <span>Connect.</span></h2><p>A next-generation community layer for people who create, learn and ship together.</p><div class="hero-stats"><span><b>12.8K</b> members</span><span><b>1,240</b> online</span><span><b>98%</b> signal</span></div></div>
+        <div class="orb"><div class="orb-core"></div><div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div></div>
+      </section>
+
+      <section class="feed" id="feed">
+        <article class="message pinned"><div class="pin-label">⌖ PINNED TRANSMISSION</div><div class="message-row"><div class="avatar av-purple">A<span></span></div><div class="message-body"><div class="meta"><strong>Atlas</strong><span class="role">NEXUS CORE</span><time>Today at 20:41</time></div><p>Welcome to <b>NEXUS</b>. This space is built for ideas that deserve to become real things. Drop a build, start a thread, or just say hello.</p><div class="reaction-row"><button>⚡ 42</button><button>🚀 18</button><button>✨ 31</button><button class="add-reaction">+</button></div></div></div></article>
+        <article class="message"><div class="message-row"><div class="avatar av-cyan">R<span></span></div><div class="message-body"><div class="meta"><strong>Riya</strong><span>Today at 20:44</span></div><p>Just finished the first version of my rover dashboard. The new activity panel is ridiculously smooth 😭</p><div class="attachment"><div class="attachment-preview"><span>LIVE BUILD</span><b>ROVER // v0.8</b><small>telemetry · mapping · mission control</small></div><div class="attachment-info"><strong>rover-dashboard.fig</strong><small>2.4 MB · uploaded just now</small></div></div><div class="reaction-row"><button>🔥 16</button><button>🤖 9</button><button class="add-reaction">+</button></div></div></div></article>
+        <article class="message"><div class="message-row"><div class="avatar av-orange">K<span></span></div><div class="message-body"><div class="meta"><strong>Kael</strong><span class="role mod">MOD</span><time>Today at 20:46</time></div><p>Tonight’s challenge: ship one tiny thing that makes tomorrow easier. Doesn’t need to be perfect. Just needs to exist.</p><div class="quote">“Momentum is a feature.”</div><div class="reaction-row"><button>💡 27</button><button>❤️ 12</button><button class="add-reaction">+</button></div></div></div></article>
+        <article class="message"><div class="message-row"><div class="avatar av-green">M<span></span></div><div class="message-body"><div class="meta"><strong>Mei</strong><span>Today at 20:49</span></div><p>Who’s joining the Focus Room? I’m doing a 45-minute build sprint.</p><div class="voice-call"><span class="sound-bars"><i></i><i></i><i></i><i></i></span><div><strong>Focus Room</strong><small>2 people connected</small></div><button>Join</button></div></div></div></article>
+      </section>
+
+      <footer class="composer-wrap"><div class="typing" id="typing"></div><form class="composer" id="messageForm"><button type="button" class="attach">＋</button><input id="messageInput" autocomplete="off" placeholder="Message #general" /><div class="compose-actions"><button type="button">☺</button><button type="button">GIF</button><button type="button">⌁</button><button type="submit" class="send">➤</button></div></form></footer>
+    </main>
+
+    <aside class="members-panel">
+      <div class="members-head"><div><span class="eyebrow">NEXUS</span><h3>Members</h3></div><span class="count">1,240 online</span></div>
+      <div class="member-section"><div class="member-title">CORE TEAM — 3</div><div class="member"><div class="avatar av-purple">A<span></span></div><div><strong>Atlas</strong><small>Core / Systems</small></div><span class="online"></span></div><div class="member"><div class="avatar av-cyan">R<span></span></div><div><strong>Riya</strong><small>Builder</small></div><span class="online"></span></div><div class="member"><div class="avatar av-orange">K<span></span></div><div><strong>Kael</strong><small>Moderator</small></div><span class="online"></span></div></div>
+      <div class="member-section"><div class="member-title">ONLINE — 5</div><div class="member"><div class="avatar av-green">M<span></span></div><div><strong>Mei</strong><small>Deep work mode</small></div><span class="online"></span></div><div class="member"><div class="avatar av-pink">J<span></span></div><div><strong>Juno</strong><small>Designing</small></div><span class="online"></span></div><div class="member"><div class="avatar av-blue">V<span></span></div><div><strong>Vik</strong><small>Learning</small></div><span class="online"></span></div><div class="member"><div class="avatar av-yellow">N<span></span></div><div><strong>Nora</strong><small>Exploring</small></div><span class="online"></span></div><div class="member"><div class="avatar av-red">Z<span></span></div><div><strong>Zed</strong><small>Shipping</small></div><span class="online"></span></div></div>
+    </aside>
+  </div>
+  <div class="toast" id="toast"></div>
+  <script src="app.js"></script>
+</body>
+</html>
