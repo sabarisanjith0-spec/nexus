@@ -1,294 +1,68 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const $ = (s) => document.querySelector(s);
-const $$ = (s) => document.querySelectorAll(s);
-const toast = (t) => {
-  const el = $('#toast');
-  el.textContent = t;
-  el.classList.add('show');
-  clearTimeout(window.__toast);
-  window.__toast = setTimeout(() => el.classList.remove('show'), 2200);
-};
-
-const titles = {
-  general: 'The main transmission channel',
-  showcase: 'Show what you are building',
-  builds: 'Build logs and experiments',
-  random: 'Everything else'
-};
-
+const $$ = (s) => [...document.querySelectorAll(s)];
+const toast = (text) => { const el = $('#toast'); el.textContent = text; el.classList.add('show'); clearTimeout(window.__toast); window.__toast = setTimeout(() => el.classList.remove('show'), 2200); };
+const titles = { general:'The main transmission channel', showcase:'Show what you are building', builds:'Build logs and experiments', random:'Everything else' };
 const config = window.NEXUS_SUPABASE || {};
 const configured = Boolean(config.url && config.publishableKey);
 const supabase = configured ? createClient(config.url, config.publishableKey) : null;
-let session = null;
-let currentChannel = 'general';
-let channelMap = new Map();
-let realtimeChannel = null;
-let authMode = 'signup';
+let session = null, currentChannel = 'general', channelMap = new Map(), realtimeChannel = null, authMode = 'signup', compact = false;
+const esc = (v) => String(v).replace(/[&<>'"]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 
-const escapeHtml = (value) => String(value).replace(/[&<>'"]/g, (ch) => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]));
+function setStatus(text, live=false){ $('#connectionStatus').textContent=text; $('#connectionStatus').parentElement.classList.toggle('is-live',live); }
+function showAuth(v=true){ $('#authOverlay').hidden=!v; }
+function setAuthMode(mode){ authMode=mode; const signup=mode==='signup'; $('#authTitle').textContent=signup?'Join NEXUS':'Welcome back'; $('#authSubtitle').textContent=signup?'Create an account to enter the live group chat.':'Sign in to continue to your NEXUS conversations.'; $('#usernameField').style.display=signup?'grid':'none'; $('#authSubmit').textContent=signup?'Create account':'Sign in'; $('#authSwitch').textContent=signup?'Already have an account? Sign in':'New here? Create an account'; $('#authPassword').autocomplete=signup?'new-password':'current-password'; $('#authNote').textContent=''; }
 
-function setStatus(text, live = false) {
-  $('#connectionStatus').textContent = text;
-  $('#connectionStatus').previousElementSibling?.classList.toggle('status-live', live);
+function renderChannels(data){ const list=$('#channelList'); list.innerHTML=''; (data||[]).forEach(row=>{ const b=document.createElement('button'); b.className=`channel ${row.name===currentChannel?'active':''}`; b.dataset.channel=row.name; b.innerHTML=`<span>#</span>${esc(row.name)}<em>${row.name==='general'?'':''}</em>`; b.addEventListener('click',()=>switchChannel(row.name)); list.appendChild(b); }); }
+async function loadChannels(){ const {data,error}=await supabase.from('channels').select('id,name').order('name'); if(error)throw error; channelMap=new Map((data||[]).map(r=>[r.name,r.id])); renderChannels(data); }
+
+function colorFor(name){ const colors=['av-purple','av-cyan','av-orange','av-green','av-pink','av-blue','av-yellow','av-red']; let n=0; for(const c of name)n+=c.charCodeAt(0); return colors[n%colors.length]; }
+function renderMembers(data){ const list=$('#membersList'); list.innerHTML=''; (data||[]).forEach((p,i)=>{ const r=document.createElement('div'); r.className='member'; r.dataset.person=p.username; r.innerHTML=`<div class="avatar ${colorFor(p.username)}">${esc(p.username.slice(0,1).toUpperCase())}<span></span></div><div><strong>${esc(p.username)}</strong><small>${i===0?'Recently active':'NEXUS member'}</small></div><span class="online"></span>`; r.addEventListener('click',()=>openPerson(p)); list.appendChild(r); }); $('#memberCount').textContent=`${data?.length||0} members`; $('#memberStat').textContent=String(data?.length||0); $('#onlineStat').textContent=String(data?.length||0); }
+async function loadMembers(){ const {data,error}=await supabase.from('profiles').select('id,username').order('username').limit(80); if(error)throw error; renderMembers(data); }
+
+function renderEmpty(){ $('#feed').innerHTML=`<div class="empty-state"><div class="hero-tag">LIVE CHANNEL</div><h3>No transmissions yet.</h3><p>Be the first person to send a message in #${esc(currentChannel)}.</p><button class="primary empty-cta" id="emptyStart">Start the conversation →</button></div>`; $('#emptyStart')?.addEventListener('click',()=>$('#messageInput').focus()); }
+function bindReactions(root=document){ root.querySelectorAll('.reaction-row button:not(.add-reaction)').forEach(b=>{ if(b.dataset.bound)return; b.dataset.bound='1'; b.onclick=()=>{const m=b.textContent.match(/(\d+)$/); if(m)b.textContent=b.textContent.replace(/\d+$/,String(+m[1]+1)); b.animate([{transform:'scale(1)'},{transform:'scale(1.12)'},{transform:'scale(1)'}],{duration:220});}; }); root.querySelectorAll('.add-reaction').forEach(b=>{ if(b.dataset.bound)return; b.dataset.bound='1'; b.onclick=()=>{b.textContent='⚡';b.classList.remove('add-reaction');toast('Reaction added');}; }); }
+function renderMessage(m){ const article=document.createElement('article'); article.className='message'; article.dataset.messageId=m.id; const name=m.profiles?.username||'User'; const initial=name[0]?.toUpperCase()||'U'; const t=new Date(m.created_at).toLocaleString([], {hour:'2-digit',minute:'2-digit'}); article.innerHTML=`<div class="message-row"><div class="avatar ${colorFor(name)}">${esc(initial)}<span></span></div><div class="message-body"><div class="meta"><strong>${esc(name)}</strong>${m.user_id===session?.user?.id?'<span class="you-tag">YOU</span>':''}<span>${esc(t)}</span></div><p>${esc(m.body).replace(/\n/g,'<br>')}</p><div class="message-tools"><button class="tool-btn" data-reply="1">↩ Reply</button><button class="tool-btn" data-save="1">◇ Save</button><button class="tool-btn" data-more="1">•••</button></div><div class="reaction-row"><button>⚡ 0</button><button>❤️ 0</button><button class="add-reaction">+</button></div></div></div>`; $('#feed').appendChild(article); bindReactions(article); article.querySelector('[data-reply]')?.addEventListener('click',()=>{ $('#messageInput').value=`@${name} `; $('#messageInput').focus(); }); article.querySelector('[data-save]')?.addEventListener('click',()=>toast('Saved locally for this session')); article.querySelector('[data-more]')?.addEventListener('click',()=>toast(m.user_id===session?.user?.id?'Your message menu is ready':'Message options opened')); return article; }
+
+async function loadMessages(){ const cid=channelMap.get(currentChannel); if(!cid)return renderEmpty(); const {data,error}=await supabase.from('messages').select('id,body,created_at,user_id,profiles(username)').eq('channel_id',cid).order('created_at',{ascending:true}).limit(150); if(error)throw error; $('#feed').innerHTML=''; if(!data?.length)return renderEmpty(); data.forEach(renderMessage); $('#feed').scrollTop=$('#feed').scrollHeight; }
+function subscribeRealtime(){ if(realtimeChannel)supabase.removeChannel(realtimeChannel); realtimeChannel=supabase.channel('nexus-live').on('postgres_changes',{event:'INSERT',schema:'public',table:'messages'},async payload=>{const row=payload.new; if(row.channel_id!==channelMap.get(currentChannel)||$(`[data-message-id="${row.id}"]`))return; const {data}=await supabase.from('profiles').select('username').eq('id',row.user_id).maybeSingle(); const atBottom=$('#feed').scrollHeight-$('#feed').scrollTop-$('#feed').clientHeight<100; renderMessage({...row,profiles:data}); if(atBottom)$('#feed').scrollTo({top:$('#feed').scrollHeight,behavior:'smooth'}); else $('#jumpNew').classList.add('show'); }).subscribe(s=>{if(s==='SUBSCRIBED')setStatus('Live sync',true);}); }
+
+async function switchChannel(name){ currentChannel=name; $$('.channel').forEach(b=>b.classList.toggle('active',b.dataset.channel===name)); $('#contextIcon').textContent='#'; $('#channelTitle').textContent=name; $('#channelSubtitle').textContent=titles[name]||'NEXUS community channel'; $('#messageInput').placeholder=`Message #${name}`; $('#heroCard').style.display=''; $('#jumpNew').classList.remove('show'); toast(`#${name}`); if(session)try{await loadMessages();}catch(e){toast(e.message);} }
+async function sendMessage(text){ if(!session)return showAuth(true); const cid=channelMap.get(currentChannel); if(!cid)throw new Error('Channel not available'); const {error}=await supabase.from('messages').insert({channel_id:cid,user_id:session.user.id,body:text}); if(error)throw error; }
+async function ensureProfile(user,username){ const clean=(username||user.user_metadata?.username||`user_${user.id.replaceAll('-','').slice(0,10)}`).trim().slice(0,24); const {error}=await supabase.from('profiles').upsert({id:user.id,username:clean},{onConflict:'id'}); if(error)throw error; $('#currentUsername').textContent=clean; $('#currentEmail').textContent=user.email||''; return clean; }
+
+function openDrawer(title,body){ $('#drawer').innerHTML=`<div class="drawer-head"><div><span class="eyebrow">NEXUS</span><h3>${esc(title)}</h3></div><button class="icon-btn" id="closeDrawer">×</button></div><div class="drawer-body">${body}</div>`; $('#drawerOverlay').hidden=false; $('#closeDrawer').onclick=closeDrawer; }
+function closeDrawer(){ $('#drawerOverlay').hidden=true; }
+function openPerson(p){ openDrawer(p.username,`<div class="profile-hero"><div class="avatar xl ${colorFor(p.username)}">${esc(p.username[0].toUpperCase())}<span></span></div><h3>${esc(p.username)}</h3><small>NEXUS member</small></div><div class="drawer-actions"><button class="primary" id="dmPerson">Start direct chat</button><button class="ghost">View activity</button></div><div class="profile-stat"><b>ACTIVE</b><span>Available in NEXUS</span></div>`); $('#dmPerson')?.addEventListener('click',()=>{closeDrawer();toast(`Direct chat with ${p.username} is queued for the next realtime module`);}); }
+function openInbox(){ openDrawer('Inbox',`<div class="notification-card"><span class="notif-icon">@</span><div><strong>You have 2 mentions</strong><p>Open a channel to see recent activity and replies.</p></div></div><div class="notification-card"><span class="notif-icon">⚡</span><div><strong>Realtime is online</strong><p>Your NEXUS workspace is synchronized.</p></div></div>`); }
+function openSettings(){ openDrawer('Control Center',`<div class="settings-block"><label>Appearance</label><button id="drawerTheme">${document.body.classList.contains('warm')?'Switch to violet':'Switch to cyan'}</button></div><div class="settings-block"><label>Density</label><button id="drawerCompact">${compact?'Use comfortable':'Use compact'} layout</button></div><div class="settings-block"><label>Session</label><button id="drawerSignout">Sign out</button></div>`); $('#drawerTheme').onclick=()=>{$('#themeBtn').click();openSettings();}; $('#drawerCompact').onclick=()=>{$('#compactBtn').click();openSettings();}; $('#drawerSignout').onclick=async()=>{await supabase?.auth.signOut();closeDrawer();}; }
+
+const commands=[['New message','Focus the composer',()=>$('#messageInput').focus()],['Search','Search current channel','search'],['Open inbox','View notifications',openInbox],['Toggle theme','Switch visual signal',()=>$('#themeBtn').click()],['Toggle compact','Change message density',()=>$('#compactBtn').click()],['Open settings','Control center',openSettings]];
+function showCommands(){ const ov=$('#commandOverlay'); ov.hidden=false; $('#commandInput').value=''; renderCommands(''); $('#commandInput').focus(); }
+function renderCommands(q){ const root=$('#commandResults'); const filtered=commands.filter(c=>!q||`${c[0]} ${c[1]}`.toLowerCase().includes(q.toLowerCase())); root.innerHTML=filtered.map((c,i)=>`<button class="command-item" data-command-index="${i}"><span>${i+1}</span><div><strong>${esc(c[0])}</strong><small>${esc(c[1])}</small></div><kbd>↵</kbd></button>`).join('')||'<div class="empty-command">No commands found.</div>'; root.querySelectorAll('.command-item').forEach(b=>b.onclick=()=>runCommand(filtered[+b.dataset.commandIndex])); }
+function runCommand(c){ if(!c)return; $('#commandOverlay').hidden=true; if(c[2]==='search'){$('#searchInput').focus();return;} c[2](); }
+
+function setupUI(){
+  $('#themeBtn').onclick=()=>{document.body.classList.toggle('warm');toast(document.body.classList.contains('warm')?'Cyan signal enabled':'Violet signal enabled');};
+  $('#compactBtn').onclick=()=>{compact=!compact;document.body.classList.toggle('compact',compact);toast(compact?'Compact density':'Comfortable density');};
+  $('#commandBtn').onclick=showCommands; $('#commandOverlay').onclick=e=>{if(e.target===e.currentTarget)e.currentTarget.hidden=true;}; $('#commandInput').oninput=e=>renderCommands(e.target.value);
+  document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();showCommands();} if(e.key==='Escape'){ $('#commandOverlay').hidden=true; closeDrawer(); }});
+  $('#inboxBtn').onclick=openInbox; $('#topInboxBtn').onclick=openInbox; $('#membersBtn').onclick=()=>openDrawer('People','<div id="drawerPeople"></div>'); $('#pinBtn').onclick=()=>toast('Pinned-message view is next in the moderation module'); $('#accountBtn').onclick=()=>openSettings(); $('#userSettingsBtn').onclick=()=>openSettings(); $('#drawerOverlay').onclick=e=>{if(e.target===e.currentTarget)closeDrawer();};
+  $('#newMessageBtn').onclick=()=>{switchChannel(currentChannel);$('#messageInput').focus();}; $('#heroStartBtn').onclick=()=>$('#messageInput').focus(); $('#heroExploreBtn').onclick=()=>{document.querySelector('[data-view="explore"]').click();}; $('#signalBtn').onclick=()=>toast('Discovery view opened'); $('#emptyStart')?.addEventListener('click',()=>$('#messageInput').focus());
+  $('#jumpNew').onclick=()=>{$('#feed').scrollTo({top:$('#feed').scrollHeight,behavior:'smooth'});$('#jumpNew').classList.remove('show');}; $('#attachBtn').onclick=()=>toast('File uploads are queued for the storage module'); $('#emojiBtn').onclick=()=>{ $('#messageInput').value+='🙂'; $('#messageInput').focus(); }; $('#gifBtn').onclick=()=>toast('GIF search is coming with the media module'); $('#formatBtn').onclick=()=>toast('Markdown formatting is available in the composer roadmap');
+  $$('.dm-item').forEach(b=>b.onclick=()=>toast(`Opening direct chat with ${b.dataset.dm}`)); $$('.voice-channel').forEach(b=>b.onclick=()=>toast(`${b.dataset.voice} voice room UI is staged for the voice module`)); $$('.server').forEach(b=>b.onclick=()=>{ $$('.server').forEach(x=>x.classList.remove('active')); b.classList.add('active'); toast(`${b.dataset.server} network selected`); });
+  $$('.nav-item').forEach(b=>b.onclick=()=>{$$('.nav-item').forEach(x=>x.classList.remove('active'));b.classList.add('active'); if(b.dataset.view==='home'){$('#heroCard').style.display='';toast('Home workspace');} else if(b.dataset.view==='explore'){openDrawer('Explore','<div class="explore-grid"><div class="explore-card"><b>Builders</b><span>Discover people shipping projects.</span></div><div class="explore-card"><b>Study</b><span>Find focused learning channels.</span></div><div class="explore-card"><b>Creator Lab</b><span>Share media and prototypes.</span></div></div>');} else toast(`${b.textContent.trim()} opened`); });
+  $('#searchInput').oninput=e=>{const q=e.target.value.toLowerCase().trim(); $$('.message').forEach(m=>m.style.display=!q||m.textContent.toLowerCase().includes(q)?'':'none');};
 }
 
-function showAuth(show = true) {
-  $('#authOverlay').hidden = !show;
-}
+async function afterAuth(){ await ensureProfile(session.user,session.user.user_metadata?.username); await loadChannels(); await loadMembers(); await loadMessages(); subscribeRealtime(); $('#messageInput').disabled=false; setStatus('Live sync',true); showAuth(false); }
+async function boot(){ if(!configured){setStatus('Backend not configured');$('#memberStat').textContent='SETUP';$('#onlineStat').textContent='DEMO';$('#feed').innerHTML='<div class="empty-state"><div class="hero-tag">BACKEND REQUIRED</div><h3>NEXUS is ready for real chat.</h3><p>Add your Supabase project URL and Publishable Key to <code>supabase-config.js</code>, then run <code>supabase.sql</code>.</p></div>';return;} try{const {data}=await supabase.auth.getSession();session=data.session;if(session)await afterAuth();else{setStatus('Sign in required');showAuth(true);}}catch(e){setStatus('Backend error');toast(e.message);} supabase.auth.onAuthStateChange(async(_event,next)=>{session=next;if(session){try{await afterAuth();}catch(e){toast(e.message);}}else{setStatus('Signed out');showAuth(true);}}); }
 
-function setAuthMode(mode) {
-  authMode = mode;
-  const signup = mode === 'signup';
-  $('#authTitle').textContent = signup ? 'Join NEXUS' : 'Welcome back';
-  $('#authSubtitle').textContent = signup ? 'Create an account to enter the live group chat.' : 'Sign in to continue to your NEXUS conversations.';
-  $('#usernameField').style.display = signup ? 'grid' : 'none';
-  $('#authSubmit').textContent = signup ? 'Create account' : 'Sign in';
-  $('#authSwitch').textContent = signup ? 'Already have an account? Sign in' : 'New here? Create an account';
-  $('#authPassword').autocomplete = signup ? 'new-password' : 'current-password';
-  $('#authNote').textContent = '';
-}
-
-function renderMessage(message) {
-  const article = document.createElement('article');
-  article.className = 'message';
-  article.dataset.messageId = message.id;
-  const username = message.profiles?.username || 'User';
-  const initial = username.slice(0, 1).toUpperCase();
-  const time = new Date(message.created_at).toLocaleString([], { hour: '2-digit', minute: '2-digit' });
-  article.innerHTML = `
-    <div class="message-row">
-      <div class="avatar av-cyan">${escapeHtml(initial)}<span></span></div>
-      <div class="message-body">
-        <div class="meta"><strong>${escapeHtml(username)}</strong><span>${escapeHtml(time)}</span></div>
-        <p>${escapeHtml(message.body).replace(/\n/g, '<br>')}</p>
-        <div class="reaction-row"><button>⚡ 0</button><button>❤️ 0</button><button class="add-reaction">+</button></div>
-      </div>
-    </div>`;
-  bindReactions(article);
-  $('#feed').appendChild(article);
-  return article;
-}
-
-function renderEmpty() {
-  $('#feed').innerHTML = `<div class="empty-state"><div class="hero-tag">LIVE CHANNEL</div><h3>No transmissions yet.</h3><p>Be the first person to send a message in #${escapeHtml(currentChannel)}.</p></div>`;
-}
-
-function bindReactions(root = document) {
-  root.querySelectorAll('.reaction-row button:not(.add-reaction)').forEach((btn) => {
-    if (btn.dataset.bound) return;
-    btn.dataset.bound = '1';
-    btn.addEventListener('click', () => {
-      const match = btn.textContent.match(/(\d+)$/);
-      if (match) btn.textContent = btn.textContent.replace(/\d+$/, String(Number(match[1]) + 1));
-      btn.animate([{transform:'scale(1)'},{transform:'scale(1.12)'},{transform:'scale(1)'}], {duration:220});
-    });
-  });
-  root.querySelectorAll('.add-reaction').forEach((btn) => {
-    if (btn.dataset.bound) return;
-    btn.dataset.bound = '1';
-    btn.addEventListener('click', () => { btn.textContent = '⚡'; btn.classList.remove('add-reaction'); toast('Reaction added'); });
-  });
-}
-
-async function ensureProfile(user, username) {
-  const clean = (username || user.user_metadata?.username || `user_${user.id.replaceAll('-', '').slice(0, 10)}`).trim().slice(0, 24);
-  const { error } = await supabase.from('profiles').upsert({ id: user.id, username: clean }, { onConflict: 'id' });
-  if (error) throw error;
-  $('#currentUsername').textContent = clean;
-  $('#currentEmail').textContent = user.email || '';
-  return clean;
-}
-
-async function loadChannels() {
-  const { data, error } = await supabase.from('channels').select('id,name').order('name');
-  if (error) throw error;
-  channelMap = new Map((data || []).map((row) => [row.name, row.id]));
-  const list = $('#channelList');
-  list.innerHTML = '';
-  (data || []).forEach((row) => {
-    const btn = document.createElement('button');
-    btn.className = `channel ${row.name === currentChannel ? 'active' : ''}`;
-    btn.dataset.channel = row.name;
-    btn.innerHTML = `<span>#</span> ${escapeHtml(row.name)}`;
-    btn.addEventListener('click', () => switchChannel(row.name));
-    list.appendChild(btn);
-  });
-}
-
-async function loadMembers() {
-  const { data, error } = await supabase.from('profiles').select('id,username').order('username').limit(50);
-  if (error) throw error;
-  $('#membersList').innerHTML = '';
-  (data || []).forEach((profile) => {
-    const row = document.createElement('div');
-    row.className = 'member';
-    row.innerHTML = `<div class="avatar av-cyan">${escapeHtml(profile.username.slice(0,1).toUpperCase())}<span></span></div><div><strong>${escapeHtml(profile.username)}</strong><small>NEXUS member</small></div><span class="online"></span>`;
-    $('#membersList').appendChild(row);
-  });
-  $('#memberCount').textContent = `${data?.length || 0} members`;
-  $('#memberStat').textContent = String(data?.length || 0);
-  $('#onlineStat').textContent = String(data?.length || 0);
-}
-
-async function loadMessages() {
-  const channelId = channelMap.get(currentChannel);
-  if (!channelId) { renderEmpty(); return; }
-  const { data, error } = await supabase
-    .from('messages')
-    .select('id,body,created_at,user_id,profiles(username)')
-    .eq('channel_id', channelId)
-    .order('created_at', { ascending: true })
-    .limit(100);
-  if (error) throw error;
-  $('#feed').innerHTML = '';
-  if (!data?.length) { renderEmpty(); return; }
-  data.forEach(renderMessage);
-  $('#feed').scrollTop = $('#feed').scrollHeight;
-}
-
-function subscribeRealtime() {
-  if (realtimeChannel) supabase.removeChannel(realtimeChannel);
-  realtimeChannel = supabase
-    .channel('nexus-messages')
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, async (payload) => {
-      const row = payload.new;
-      const channelId = channelMap.get(currentChannel);
-      if (row.channel_id !== channelId || document.querySelector(`[data-message-id="${row.id}"]`)) return;
-      const { data } = await supabase.from('profiles').select('username').eq('id', row.user_id).maybeSingle();
-      renderMessage({ ...row, profiles: data });
-      $('#feed').scrollTo({ top: $('#feed').scrollHeight, behavior: 'smooth' });
-    })
-    .subscribe((status) => {
-      if (status === 'SUBSCRIBED') setStatus('Live sync', true);
-    });
-}
-
-async function switchChannel(name) {
-  currentChannel = name;
-  $$('.channel').forEach((x) => x.classList.toggle('active', x.dataset.channel === name));
-  $('#channelTitle').textContent = name;
-  $('#channelSubtitle').textContent = titles[name] || 'NEXUS community channel';
-  $('#messageInput').placeholder = `Message #${name}`;
-  toast(`Switched to #${name}`);
-  if (session) {
-    try { await loadMessages(); } catch (error) { toast(error.message); }
-  }
-}
-
-async function sendMessage(text) {
-  if (!session) return showAuth(true);
-  const channelId = channelMap.get(currentChannel);
-  if (!channelId) return toast('Channel not available');
-  const { error } = await supabase.from('messages').insert({ channel_id: channelId, user_id: session.user.id, body: text });
-  if (error) throw error;
-}
-
-async function boot() {
-  if (!configured) {
-    setStatus('Backend not configured');
-    $('#memberStat').textContent = 'SETUP';
-    $('#onlineStat').textContent = 'DEMO';
-    $('#feed').innerHTML = `<div class="empty-state"><div class="hero-tag">BACKEND REQUIRED</div><h3>NEXUS is ready for real chat.</h3><p>Add your Supabase project URL and Publishable Key to <code>supabase-config.js</code>, then run <code>supabase.sql</code>.</p></div>`;
-    showAuth(false);
-    return;
-  }
-
-  try {
-    const { data } = await supabase.auth.getSession();
-    session = data.session;
-    if (!session) {
-      setStatus('Sign in required');
-      showAuth(true);
-    } else {
-      await afterAuth();
-    }
-  } catch (error) {
-    setStatus('Backend error');
-    toast(error.message);
-  }
-
-  supabase.auth.onAuthStateChange(async (_event, nextSession) => {
-    session = nextSession;
-    if (session) {
-      showAuth(false);
-      try { await afterAuth(); } catch (error) { toast(error.message); }
-    } else {
-      showAuth(true);
-      setStatus('Signed out');
-    }
-  });
-}
-
-async function afterAuth() {
-  const username = session.user.user_metadata?.username;
-  await ensureProfile(session.user, username);
-  await loadChannels();
-  await loadMembers();
-  await loadMessages();
-  subscribeRealtime();
-  $('#messageInput').disabled = false;
-  setStatus('Live sync', true);
-}
-
-$('#authForm').addEventListener('submit', async (event) => {
-  event.preventDefault();
-  if (!supabase) return;
-  const email = $('#authEmail').value.trim();
-  const password = $('#authPassword').value;
-  const username = $('#authUsername').value.trim();
-  $('#authSubmit').disabled = true;
-  $('#authNote').textContent = 'Connecting…';
-  try {
-    if (authMode === 'signup') {
-      const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { username } } });
-      if (error) throw error;
-      if (!data.session) {
-        setAuthMode('signin');
-        $('#authNote').textContent = 'Check your email to confirm your account, then sign in.';
-      } else {
-        $('#authNote').textContent = 'Account created. Opening NEXUS…';
-      }
-    } else {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
-    }
-  } catch (error) {
-    $('#authNote').textContent = error.message;
-  } finally {
-    $('#authSubmit').disabled = false;
-  }
-});
-
-$('#authSwitch').addEventListener('click', () => setAuthMode(authMode === 'signup' ? 'signin' : 'signup'));
-$('#signOutBtn').addEventListener('click', async () => { if (supabase) await supabase.auth.signOut(); });
-$('#themeBtn').addEventListener('click', () => { document.body.classList.toggle('warm'); toast(document.body.classList.contains('warm') ? 'Cyan signal enabled' : 'Violet signal enabled'); });
-$$('.server').forEach((btn) => btn.addEventListener('click', () => { $$('.server').forEach((x) => x.classList.remove('active')); btn.classList.add('active'); toast(`${btn.dataset.server} network selected`); }));
-
-$('#messageForm').addEventListener('submit', async (event) => {
-  event.preventDefault();
-  const input = $('#messageInput');
-  const text = input.value.trim();
-  if (!text) return;
-  try {
-    await sendMessage(text);
-    input.value = '';
-    toast('Transmission sent');
-  } catch (error) {
-    toast(error.message);
-  }
-});
-
-$('#searchInput').addEventListener('input', (event) => {
-  const q = event.target.value.toLowerCase().trim();
-  $$('.message').forEach((m) => { m.style.display = !q || m.textContent.toLowerCase().includes(q) ? '' : 'none'; });
-});
-
-document.addEventListener('keydown', (event) => {
-  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); $('#searchInput').focus(); }
-});
-
-$('#addChannel').addEventListener('click', () => toast('Channel creation is coming next — the chat core is live first.'));
-
-setAuthMode('signup');
-boot();
+$('#authForm').addEventListener('submit',async e=>{e.preventDefault();if(!supabase)return;const email=$('#authEmail').value.trim(),password=$('#authPassword').value,username=$('#authUsername').value.trim();$('#authSubmit').disabled=true;$('#authNote').textContent='Connecting…';try{if(authMode==='signup'){const {data,error}=await supabase.auth.signUp({email,password,options:{data:{username}}});if(error)throw error;if(!data.session){setAuthMode('signin');$('#authNote').textContent='Check your email to confirm your account, then sign in.';}else toast('Account created');}else{const {error}=await supabase.auth.signInWithPassword({email,password});if(error)throw error;}}catch(e){$('#authNote').textContent=e.message;}finally{$('#authSubmit').disabled=false;}});
+$('#authSwitch').onclick=()=>setAuthMode(authMode==='signup'?'signin':'signup'); $('#signOutBtn').onclick=async()=>supabase?.auth.signOut(); $('#closeAuth').onclick=()=>{if(session)showAuth(false)};
+$('#messageForm').addEventListener('submit',async e=>{e.preventDefault();const input=$('#messageInput'),text=input.value.trim();if(!text)return;try{await sendMessage(text);input.value='';toast('Transmission sent');}catch(err){toast(err.message);}});
+$('#messageInput').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();$('#messageForm').requestSubmit();}});
+$('#addChannel').onclick=async()=>{if(!session)return showAuth(true);const name=prompt('Create a channel name');const clean=name?.trim().toLowerCase().replace(/[^a-z0-9-]/g,'-').slice(0,30);if(!clean)return;const {error}=await supabase.from('channels').insert({name:clean});if(error)toast(error.message);else{await loadChannels();await switchChannel(clean);toast(`#${clean} created`);}};
+$('#addServer').onclick=()=>toast('Community creation will be connected to server management next');
+setupUI(); setAuthMode('signup'); boot();
