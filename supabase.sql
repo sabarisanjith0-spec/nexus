@@ -1,5 +1,5 @@
 -- NEXUS real group-chat backend
--- Run this in the Supabase SQL Editor.
+-- Run this once in the Supabase SQL Editor.
 
 create extension if not exists pgcrypto;
 
@@ -87,5 +87,16 @@ create trigger on_auth_user_created
 after insert on auth.users
 for each row execute function public.handle_new_user();
 
--- Enable database change streaming for the chat table.
-alter publication supabase_realtime add table public.messages;
+-- Enable Postgres Changes for live chat updates, without failing when already enabled.
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_publication_tables
+    where pubname = 'supabase_realtime'
+      and schemaname = 'public'
+      and tablename = 'messages'
+  ) then
+    execute 'alter publication supabase_realtime add table public.messages';
+  end if;
+end $$;
