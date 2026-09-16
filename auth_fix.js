@@ -1,15 +1,16 @@
 // NEXUS authentication + session persistence fix.
-// Owns auth submission and keeps a valid Supabase session authoritative.
+// Uses the same Supabase storage configuration as app.js so the session is shared.
 import('https://esm.sh/@supabase/supabase-js@2').then(({ createClient }) => {
   const config = window.NEXUS_SUPABASE || {};
   if (!config.url || !config.publishableKey) return;
 
+  // IMPORTANT: no custom storageKey here. app.js uses Supabase's default storage key,
+  // so both clients must read/write the same persisted session.
   const supabase = createClient(config.url, config.publishableKey, {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
-      detectSessionInUrl: true,
-      storageKey: 'nexus-auth'
+      detectSessionInUrl: true
     }
   });
 
