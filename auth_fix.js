@@ -1,10 +1,18 @@
-// NEXUS authentication runtime fix.
-// Owns the auth form so signup/sign-in cannot be double-handled by app.js.
+// NEXUS authentication + session persistence fix.
+// Owns auth submission and keeps a valid Supabase session authoritative.
 import('https://esm.sh/@supabase/supabase-js@2').then(({ createClient }) => {
   const config = window.NEXUS_SUPABASE || {};
   if (!config.url || !config.publishableKey) return;
 
-  const supabase = createClient(config.url, config.publishableKey);
+  const supabase = createClient(config.url, config.publishableKey, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      storageKey: 'nexus-auth'
+    }
+  });
+
   const form = document.querySelector('#authForm');
   const usernameInput = document.querySelector('#authUsername');
   const emailInput = document.querySelector('#authEmail');
@@ -12,6 +20,7 @@ import('https://esm.sh/@supabase/supabase-js@2').then(({ createClient }) => {
   const submitButton = document.querySelector('#authSubmit');
   const switchButton = document.querySelector('#authSwitch');
   const note = document.querySelector('#authNote');
+  const overlay = document.querySelector('#authOverlay');
 
   if (!form || !usernameInput || !emailInput || !passwordInput || !submitButton || !switchButton || !note) return;
 
@@ -29,10 +38,27 @@ import('https://esm.sh/@supabase/supabase-js@2').then(({ createClient }) => {
     note.classList.toggle('error', error);
   };
 
+  const syncExistingSession = async () => {
+    const { data, error } = await supabase.auth.getSession();
+    if (error) return;
+    if (data.session && overlay) overlay.hidden = true;
+  };
+
   syncValidation();
+  syncExistingSession();
   switchButton.addEventListener('click', () => queueMicrotask(syncValidation));
 
-  // Capture first so the legacy app.js submit listener cannot run a second auth request.
+  supabase.auth.onAuthStateChange((event, currentSession) => {
+    if (currentSession && overlay) {
+      overlay.hidden = true;
+      document.documentElement.dataset.nexusAuthenticated = 'true';
+    } else if (event === 'SIGNED_OUT' && overlay) {
+      overlay.hidden = false;
+      document.documentElement.dataset.nexusAuthenticated = 'false';
+    }
+  });
+
+  // Capture first so the legacy app.js submit listener cannot process the same auth request.
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     event.stopImmediatePropagation();
@@ -58,7 +84,6 @@ import('https://esm.sh/@supabase/supabase-js@2').then(({ createClient }) => {
           password,
           options: { data: { username } }
         });
-
         if (error) throw error;
 
         if (data.session) {
@@ -67,9 +92,13 @@ import('https://esm.sh/@supabase/supabase-js@2').then(({ createClient }) => {
           return;
         }
 
-        // Email confirmation is enabled: the account is created but needs confirmation.
-        switchButton.click();
-        showNote('Account created. Check your email, confirm it, then sign in.');
+        switchButton.textContent = 'New here? Create an account';
+        usernameInput.required = false;
+        usernameInput.disabled = true;
+        usernameInput.closest('#usernameField')?.setAttribute('style', 'display:none');
+        submitButton.textContent = 'Sign in';
+        passwordInput.autocomplete = 'current-password';
+        showNote('Account created. Confirm your email, then sign in.');
         return;
       }
 
@@ -77,12 +106,13 @@ import('https://esm.sh/@supabase/supabase-js@2').then(({ createClient }) => {
       if (error) throw error;
       if (!data.session) throw new Error('Sign-in completed without a session. Please try again.');
 
+      if (overlay) overlay.hidden = true;
+      document.documentElement.dataset.nexusAuthenticated = 'true';
       showNote('Signed in. Loading NEXUS…');
       window.location.reload();
     } catch (error) {
       console.error('[NEXUS auth]', error);
-      const message = error?.message || 'Authentication failed.';
-      showNote(message, true);
+      showNote(error?.message || 'Authentication failed.', true);
     } finally {
       submitButton.disabled = false;
       submitButton.textContent = isSignup() ? 'Create account' : 'Sign in';
