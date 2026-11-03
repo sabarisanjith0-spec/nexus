@@ -12,6 +12,16 @@
     'gameDirectorBtn'
   ];
 
+  const OPEN_BINDINGS = [
+    ['nxGamesBtn','NEXUS_GAMES'],
+    ['arcadeBtn','NEXUS_ARCADE'],
+    ['3dGamesBtn','NEXUS_3D'],
+    ['expansionArcadeBtn','NEXUS_EXPANSION'],
+    ['gameVaultBtn','NEXUS_GAME_VAULT'],
+    ['ultraGamesBtn','NEXUS_ULTRA'],
+    ['gameDirectorBtn','NEXUS_GAME_DIRECTOR']
+  ];
+
   const LAUNCHERS = [
     {name:'Multiplayer Game Hub',detail:'Create a room and play realtime games with friends.',icon:'🎮',group:'MULTIPLAYER',api:'NEXUS_GAMES',fallback:'#nxGamesBtn'},
     {name:'NEXUS Arcade',detail:'Fast original mini-games and curated browser games.',icon:'🕹️',group:'ARCADE',api:'NEXUS_ARCADE',fallback:'#arcadeBtn'},
@@ -180,6 +190,7 @@
     }
 
     installHeadShortcut();
+    wireLabButtons();
   }
 
   function bindGlobalShortcuts() {
