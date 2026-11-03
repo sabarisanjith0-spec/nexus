@@ -12,6 +12,19 @@ NEXUS is a futuristic, real-time community communication platform built for fast
 - Deployment: GitHub Pages via GitHub Actions
 - PWA: Web App Manifest
 
+## Product quality layer
+
+The latest frontend layer adds a consistent responsive design system and a unified NEXUS Launchpad.
+
+- Responsive desktop, tablet and mobile workspace layouts
+- Clearer visual hierarchy, spacing, focus states and reduced-motion support
+- One Launchpad for the multiplayer hub, original arcade, 3D experiences, Game Vault and workspace tools
+- `Ctrl/⌘ + Shift + L` opens the Launchpad
+- Comfortable/compact message density is remembered locally
+- Core UI bindings use the current HTML element IDs to avoid startup-time null-reference failures
+
+The Launchpad is a navigation layer over the existing modules; each game or tool continues to run in its own module.
+
 ## Production setup
 
 1. Create a Supabase project.
